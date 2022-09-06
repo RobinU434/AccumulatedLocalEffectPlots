@@ -130,4 +130,5 @@ dmypy.json
 
 
 # dataset directoriy
-/dataset
+/dataset/*
+!/dataset/.keep
