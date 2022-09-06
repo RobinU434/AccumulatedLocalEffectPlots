@@ -128,8 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-
 # dataset directoriy
-# !/dataset/.keep
-# /dataset/*
+/dataset/*
 
+# keep every path that contains this file
+!*.keep
