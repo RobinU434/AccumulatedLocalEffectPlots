@@ -31,17 +31,17 @@ def mnist():
         logger=CSVLogger(save_dir="logs/mnist/"),
     )
     trainer.fit(model)
-    
+  
+  
 def tabular_data(model, path, label_column, ale_columns: Tuple):
     X_train, y_train, X_test, y_test = prepare_data(path, label_column)
-    # available models are:
     
     model = train(model, X_train, y_train, X_test, y_test)
 
     ale(model,
         X_train,
         num_buckets=22,
-        columns=ale_column)
+        columns=ale_columns)
     
     
 

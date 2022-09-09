@@ -54,7 +54,7 @@ def ale(
     
     
     
-    print(X[:, 0])
+    print(X[0:2, :]])
     
     
     # the random data
