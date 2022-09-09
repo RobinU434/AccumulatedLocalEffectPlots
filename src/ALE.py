@@ -5,9 +5,10 @@ import numpy as np
 import pandas as pd 
 from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
-from helper import popcols, poprows
+from src.helper import create_buckets
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import NullFormatter
 
         
 def ale(
@@ -21,7 +22,7 @@ def ale(
     Args:
         model (_type_): _description_
         X (np.array): _description_
-            We are expecting: np.array([column1:np.array, column2.np.array, ...])   -> shape= (num_columns, num_data_points)
+            We are expecting: shape= (num_data_points, num_columns)
         num_buckets (int): _description_
         columns (np.array): is a tuple that determines which feature column is the one we want to analyze
     """
@@ -31,47 +32,105 @@ def ale(
     if num_columns > 2:
         raise NotImplementedError("More than two columns are not supported")
     
-    # span buckets
-    mins = X[columns, :].min(axis=1)
-    maxs = X[columns, :].max(axis=1)
+    buckets = create_buckets(X=X, 
+                             columns=columns,
+                             num_buckets=num_buckets)
     
-    if type(mins) == float:
-        mins  = np.array([mins])
-    
-    if type(maxs) == float:
-        maxs  = np.array([maxs])
-             
-    buckets_borders = np.zeros((len(columns), num_buckets))
-    for i in range(num_columns):
-        buckets_borders[i] = np.linspace(mins[i], maxs[i], num_buckets + 1)[1:]
-    # buckets_borders = np.array(buckets_borders).T  # transform to numpy array and format: np.array([border1_columnN, border2_columnN], [border1_columnN', border2_columnN']])
-    
-    if num_columns == 2:
-        raise NotImplementedError
+    # proceed at first only with just one bucket and one column
+    ale_score = np.zeros(num_buckets + 1)
+    for idx, bucket in enumerate(buckets):
+        column = columns[0]
+        y_lower = model.predict(bucket.shift_to_lower(column)).sum()
+        y_upper = model.predict(bucket.shift_to_upper(column)).sum()
         
-    # fill buckets
-    # first into buckets along the first axis from columns 
-    df = pd.DataFrame(np.copy(X).T)
-    data = pd.DataFrame(np.copy(X))
-    buckets = []
-    already_added_index = set()
-    for limit in buckets_borders[0]:
-        print(limit)
-        temp_data = df[df[columns[0]] <= limit]
-        index_to_add = set(temp_data.index) - already_added_index
-        buckets.append(np.array(data[index_to_add]))
-        already_added_index = already_added_index.union(index_to_add)
+        difference = y_upper - y_lower
+        
+        ale_score[idx + 1] = difference / len(bucket)
+    
+    ale_score = np.cumsum(ale_score)
+    
+    # center the ale_score
+    ale_score -= ale_score.mean()
     
     
+    
+    print(X[:, 0])
+    
+    
+    # the random data
+    x = np.random.randn(1000)
+    y = np.random.randn(1000)
+
+    nullfmt = NullFormatter()         # no labels
+
+    # definitions for the axes
+    left, width = 0.1, 0.65
+    bottom, height = 0.1, 0.65
+    bottom_h = left_h = left + width + 0.02
+
+    rect_scatter = [left, bottom, width, height]
+    rect_histx = [left, bottom_h, width, 0.1]
+    rect_histy = [left_h, bottom, 0.2, height]
+
+    # start with a rectangular Figure
+    plt.figure(1, figsize=(8, 8))
+
+    # plot ale score 
+    axAle = plt.axes(rect_scatter)
+    # axScatter = plt.axes(rect_scatter)
+    axHistx = plt.axes(rect_histx)
+    # axHisty = plt.axes(rect_histy)
+
+    # no labels
+    axHistx.xaxis.set_major_formatter(nullfmt)
+    # axHisty.yaxis.set_major_formatter(nullfmt)
+
+    # the scatter plot:
+    print(columns)
+    x_lim = (X[:, columns].min(axis=0), X[:, columns].max(axis=0))
+    print(x_lim)
+    pltAle = axAle.plot(np.linspace(x_lim[0],
+                                  x_lim[1],
+                                  num_buckets + 1), 
+                      ale_score)
+
+    # now determine nice limits by hand:
+    binwidth = 0.25
+    xymax = np.max([np.max(np.fabs(x)), np.max(np.fabs(y))])
+    lim = (int(xymax/binwidth) + 1) * binwidth
+
+    axAle.set_xlim(x_lim)
+    axAle.set_ylim((ale_score.min(), ale_score.max()))
+
+    bins = np.arange(-lim, lim + binwidth, binwidth)
+    axHistx.hist(X[:, column], bins=num_buckets)  # horizontal histogram 
+    # axHisty.hist(y, bins=bins, orientation='horizontal')  # vertical histogram
+
+    axHistx.set_xlim(axAle.get_xlim())
+    # axHisty.set_ylim(axScatter.get_ylim())
+
+    plt.show()
+    
+    # plt.plot(np.linspace(X[:, columns].min(axis=0), 
+    #                      X[:, columns].max(axis=0),
+    #                      num_buckets + 1), ale_score)
+    # # plt.axis("scaled")
+    # plt.scatter(X.T[0], X.T[1])
+    # plt.show()
+    
+    return ale_score
 
 class Model:
     def __init__(self) -> None:
         pass
     
     def __call__(self, x, *args: Any, **kwds: Any) -> Any:
-        return x.sum()
+        return x.sum(axis=1)
     
     def forward(self, x):
+        return self.__call__(x)
+    
+    def predict(self, x):
         return self.__call__(x)
     
 
@@ -117,13 +176,17 @@ if __name__ == "__main__":
     # gen_data(plot=True)
     model = Model()
     np.random.seed(123456789)
-    data = np.random.random((5, 10))
-    
-    print(data)
-    ale(
+    data = np.random.random((10, 2))
+    num_buckets = 3
+    ale_score = ale(
         model,
         data,
-        num_buckets=3,
+        num_buckets=num_buckets,
         columns=(0,)
         )
+    
+    plt.plot(np.linspace(0,1, num_buckets + 1), ale_score)
+    plt.axis("scaled")
+    plt.scatter(data.T[0], data.T[1])
+    plt.show()
     

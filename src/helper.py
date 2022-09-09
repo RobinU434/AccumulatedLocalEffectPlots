@@ -1,35 +1,55 @@
+from ast import Num
+from typing import Tuple
 import numpy as np
+import pandas as pd
 
-def poprow(my_array,pr):
-    """ row popping in numpy arrays
-    Input: my_array - NumPy array, pr: row index to pop out
-    Output: [new_array,popped_row] """
-    i = pr
-    pop = my_array[i]
-    new_array = np.vstack((my_array[:i],my_array[i+1:]))
-    return [new_array,pop]
+from src.bucket import Bucket
 
-def poprows(my_array, index_list):
-    res_array = my_array
+def create_buckets(X: np.array, 
+                  columns: Tuple,
+                  num_buckets):
+    num_columns = len(columns)
     
-    for index in index_list[::-1]:
-        res_array = poprow(res_array, index)
-        
-    return res_array
-
-def popcol(my_array,pc):
-    """ column popping in numpy arrays
-    Input: my_array: NumPy array, pc: column index to pop out
-    Output: [new_array,popped_col] """
-    i = pc
-    pop = my_array[:,i]
-    new_array = np.hstack((my_array[:,:i],my_array[:,i+1:]))
-    return [new_array,pop]
-
-def popcols(my_array, index_list):
-    res_array = my_array
+    mins = X[:, columns].min(axis=0)
+    maxs = X[:, columns].max(axis=0)
     
-    for index in index_list[::-1]:
-        res_array = popcol(res_array, index)
+    if num_columns == 1: 
+        column = columns[0]
+        base_limits = np.linspace(float(mins), float(maxs), num_buckets + 1)
+        # edit lowest border to include those point  which are at the lowest point
+        epsilon = 1e-10
+        base_limits[0] -= epsilon
+        limits = np.array([base_limits[:-1], base_limits[1:]])  # first lower limit then upper limit
         
-    return res_array
+        buckets = [ Bucket(lower_limit=ll, upper_limit=up) for ll, up in limits.T]
+        
+        # caution: not runtime efficient
+        # better: sort X wrt. the feature index and and then these partitioned lists
+        for x in X:
+            for bucket in buckets:
+                bucket.conditional_add(x, x[column])
+                
+        return buckets
+                    
+            
+    # span buckets
+    buckets_borders = np.zeros((len(columns), num_buckets))
+    for i in range(num_columns):
+        buckets_borders[i] = np.linspace(mins[i], maxs[i], num_buckets + 1)[1:]
+    # buckets_borders = np.array(buckets_borders).T  # transform to numpy array and format: np.array([border1_columnN, border2_columnN], [border1_columnN', border2_columnN']])
+    
+    if num_columns == 2:
+        raise NotImplementedError
+        
+    # fill buckets
+    # first into buckets along the first axis from columns 
+    df = pd.DataFrame(np.copy(X).T)
+    data = pd.DataFrame(np.copy(X))
+    buckets = []
+    already_added_index = set()
+    for limit in buckets_borders[0]:
+        print(limit)
+        temp_data = df[df[columns[0]] <= limit]
+        index_to_add = set(temp_data.index) - already_added_index
+        buckets.append(np.array(data[index_to_add]))
+        already_added_index = already_added_index.union(index_to_add)
