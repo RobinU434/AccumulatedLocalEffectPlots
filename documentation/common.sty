@@ -1,0 +1,88 @@
+\ProvidesPackage{common}
+
+\UseRawInputEncoding
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{geometry}
+\newgeometry{left=2cm, right=2cm, top=2cm, bottom=2cm}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{tocloft}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage[square,sort,comma,numbers,sort&compress]{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{amstext}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{parskip}
+\usepackage{todonotes}
+\pagestyle{fancy}
+
+%------------------------------------------------------------------------------
+%       package includes
+%------------------------------------------------------------------------------
+    % font encoding is set up for pdflatex, for other environments see
+    % http://tex.stackexchange.com/questions/44694/fontenc-vs-inputenc
+    \usepackage[T1]{fontenc}  % 8-bit fonts, improves handling of hyphenations
+    % \usepackage[utf8x]{inputenc}
+    % provides `old' commands for table of contents. Eases the ability to switch
+ % ------------------- layout, default -------------------
+    % adjust the style of float's captions, separated from text to improve readabilty
+    % \usepackage[labelfont=bf, labelsep=colon, format=hang, textfont=singlespacing]{caption}
+    % With format = hang your caption will look like this:
+    % Figure 1: Lorem ipsum dolor sit amet,
+    %           consectetuer adipiscing elit.
+    %           Ut purus elit, vestibulum
+    % If you instead want
+    % Figure 1: Lorem ipsum dolor sit amet,
+    % consectetuer adipiscing elit. Ut purus
+    % elit, vestibulum
+    % change to format=plain
+    \usepackage{setspace}  % Line spacing
+    \onehalfspacing
+    
+%------------------------------------------------------------------------------
+%       (re)new commands / settings
+%------------------------------------------------------------------------------
+    % ----------------- referencing ----------------
+    \newcommand{\secref}[1]{Section~\ref{#1}}
+    \newcommand{\secnameref}[1]{Section~\nameref{#1}}
+    \newcommand{\chapref}[1]{Chapter~\ref{#1}}
+    \renewcommand{\eqref}[1]{Equation~\ref{#1}}
+    \newcommand{\figref}[1]{Figure~\ref{#1}}
+    \newcommand{\figsubref}[1]{Figure~\subref{#1}}
+    \newcommand{\tabref}[1]{Table~\ref{#1}}
+    \newcommand{\appendixref}[1]{Appendix~\ref{#1}}
+
+
+
+
+\newcommand{\yourname}{\textbf{Robin Uhrich} \\ 4906414}
+\author{\yourname}
+\title{Learning Quadrupedal Locomotion From Scratch}
+
+\setlength{\headheight}{13.07225pt}
+\setlength{\parindent}{0pt}
+
+
+\newcolumntype{L}{>{$}l<{$}} 
+
+
+\newcommand{\abs}[1]{\left| #1 \right|}
+\newcommand{\vecarrow}[1]{\overset{\rightharpoonup}{#1}}
+
+\newcommand{\todoc}[2][]
+{\todo[color=blue!20!white, size=\small #1]{#2}}
+\newcommand{\todoq}[2][]
+{\todo[color=orange!20!white, size=\small #1]{#2}}
+\newcommand{\todof}[2][]
+{\todo[color=green!20!white, size=\small #1]{#2}}
+\newcommand{\todow}[1][]
+{\todo[color=red!20!white, size=\small #1]{wording?}}
