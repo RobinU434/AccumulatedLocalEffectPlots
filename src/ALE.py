@@ -1,23 +1,30 @@
-import imp
-from random import random
-from typing import Any
+from statistics import quantiles
+from typing import Any, Tuple
 import numpy as np
-import pandas as pd 
+import pandas as pd
+import seaborn as sns 
 from numpy.random import MT19937
 from numpy.random import RandomState, SeedSequence
-from src.helper import create_buckets
+from src.helper import create_2d_cells, create_buckets2, get_one_dim_buckets, get_1d_quantiles, create_1d_buckets
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullFormatter
 
+import sklearn
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+        
         
 def ale(
     model,
-    X: np.array,
-    num_buckets: int,
-    columns: np.array
+    X: pd.DataFrame,
+    grid_shape: Tuple,
+    columns: Tuple,
+    show: bool = False,
+    std: np.array = np.ones(100), 
+    mean: np.array = np.zeros(100)
     ):
-    """_summary_
+    """Accumulative local effect
 
     Args:
         model (_type_): _description_
@@ -25,100 +32,148 @@ def ale(
             We are expecting: shape= (num_data_points, num_columns)
         num_buckets (int): _description_
         columns (np.array): is a tuple that determines which feature column is the one we want to analyze
+        show (bool, optional): _description_. Defaults to False.
+        std (np.array, optional): value to reset normalization. Defaults to np.ones(100).
+        mean (np.array, optional): value to reset normalization. Defaults to np.zeros(100).
+
+    Raises:
+        NotImplementedError: _description_
+        NotImplementedError: _description_
+
+    Returns:
+        _type_: _description_
     """
-    
     num_columns = len(columns)
     
-    if num_columns > 2:
-        raise NotImplementedError("More than two columns are not supported")
+    array = X.to_numpy()
     
-    buckets = create_buckets(X=X, 
-                             columns=columns,
-                             num_buckets=num_buckets)
-    
-    # proceed at first only with just one bucket and one column
-    ale_score = np.zeros(num_buckets + 1)
-    for idx, bucket in enumerate(buckets):
-        column = columns[0]
-        y_lower = model.predict(bucket.shift_to_lower(column)).sum()
-        y_upper = model.predict(bucket.shift_to_upper(column)).sum()
+    if num_columns == 1:
+        column_idx = X.columns.get_loc(columns[0])
+        buckets, quantiles = create_1d_buckets(X = X, 
+                                      column_idx = column_idx,
+                                      num_buckets = grid_shape[0])
+        # overwrite the initial variable because of num_buckets > len(x)
+        num_buckets = len(buckets)
         
-        difference = y_upper - y_lower
+        # proceed at first only with just one bucket and one column
+        ale_score = np.zeros(num_buckets + 1)
+        for idx, bucket in enumerate(buckets):
+            y_lower = model.predict(bucket.shift_to_lower(column_idx)).sum()
+            y_upper = model.predict(bucket.shift_to_upper(column_idx)).sum()
+            
+            difference = y_upper - y_lower
+            
+            ale_score[idx + 1] = difference / len(bucket)
         
-        ale_score[idx + 1] = difference / len(bucket)
+        ale_score = np.cumsum(ale_score)
+        
+        # center the ale_score
+        ale_score -= np.trapz(ale_score, x=quantiles) / (quantiles[-1] - quantiles[0])
+        
+        
+        std = std[column_idx]
+        mean = mean[column_idx]
+        # change quantile distribution
+        quantiles = quantiles * std + mean
+        
+        # plot results
+        if show:     
+            fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True)
+            # axs[0].plot(np.linspace(array[:, column_idx].min(axis=0), 
+            #                     array[:, column_idx].max(axis=0),
+            #                     num_buckets + 1), ale_score)
+            fig.suptitle(f"First order ALE of feature: '{columns[0]}' \n bins: {grid_shape[0]}")
+            axs[0].plot(quantiles, ale_score)
+            
+            line_length = (ale_score.max() - ale_score.min()) * 0.05 
+            line_offset = ale_score.min() - line_length * 1.5
+            
+            axs[0].eventplot(X[columns[0]] * std + mean, linelengths=line_length, lineoffsets=line_offset)
+            
+            # axs[0].eventplot(quantiles, linelengths=line_length, lineoffsets=line_offset - line_length * 1.5)
+            
+            sns.histplot(array[:, column_idx] * std + mean, 
+                        ax=axs[1],
+                        bins=num_buckets, 
+                        kde=False,
+                        stat="probability")
+            plt.show()
     
-    ale_score = np.cumsum(ale_score)
+    elif num_columns == 2: 
+        raise NotImplementedError("Is not implemented yet. I will refer to 2D methods with https://github.com/blent-ai/ALEPython/")
+        
+    else:
+        raise NotImplementedError("More than two columns are not supported")  
     
-    # center the ale_score
-    ale_score -= ale_score.mean()
+    return ale_score, quantiles
+
+
+def sample_ale(
+    model_class,
+    X: pd.DataFrame,
+    y: pd.DataFrame,
+    grid_shape: Tuple,
+    columns: Tuple,
+    shuffle: bool = False,
+    num_samples: int = 10,
+    std: np.array = np.ones(100), 
+    mean: np.array = np.zeros(100), 
+    show: bool = False,
+    ):
     
+    features = X.columns
     
+    scores = np.array([])
+    accuracies = np.array([])
     
-    print(X[0:2, :]])
+    if show:
+        fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True)
     
+    for _ in range(num_samples):
+        if shuffle:
+            sklearn.utils.shuffle(X.to_numpy())
+            
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+        
+        model = model_class()
+        model = model.fit(X_train, y_train)
+        
+        prediction = model.predict(X_test)
+        accuracies = np.append(accuracies, accuracy_score(prediction,y_test))
+        print(f"Model test accuracy is at {accuracy * 100}%")
+        
+        score, quantiles = ale(model,
+                                pd.DataFrame(X_train, columns=features),
+                                columns = columns,
+                                grid_shape = grid_shape,
+                                show = False,
+                                std = std, 
+                                mean = mean)
+        
+        print("score ", score)
+        scores = np.append(scores, [[score]])
+        
+        if show:
+            axs[0].plot(quantiles, score, alpha=0.5, color="grey")
+            
+    if show:
+        line_length = (scores.max() - scores.min()) * 0.05 
+        line_offset = scores.min() - line_length * 1.5
+                
+        X_train_df = pd.DataFrame(X_train, columns=features)
+        column_idx = X_train_df.columns.get_loc(columns[0])
+        
+        axs[0].eventplot(X[columns[0]] * std[column_idx] + mean[column_idx], linelengths=line_length, lineoffsets=line_offset)
+        
+        sns.histplot(X_train_df[columns[0]] * std[column_idx] + mean[column_idx], 
+                    ax=axs[1],
+                    bins=grid_shape[0], 
+                    kde=False,
+                    stat="probability")
+        
+        plt.show()
     
-    # the random data
-    x = np.random.randn(1000)
-    y = np.random.randn(1000)
-
-    nullfmt = NullFormatter()         # no labels
-
-    # definitions for the axes
-    left, width = 0.1, 0.65
-    bottom, height = 0.1, 0.65
-    bottom_h = left_h = left + width + 0.02
-
-    rect_scatter = [left, bottom, width, height]
-    rect_histx = [left, bottom_h, width, 0.1]
-    rect_histy = [left_h, bottom, 0.2, height]
-
-    # start with a rectangular Figure
-    plt.figure(1, figsize=(8, 8))
-
-    # plot ale score 
-    axAle = plt.axes(rect_scatter)
-    # axScatter = plt.axes(rect_scatter)
-    axHistx = plt.axes(rect_histx)
-    # axHisty = plt.axes(rect_histy)
-
-    # no labels
-    axHistx.xaxis.set_major_formatter(nullfmt)
-    # axHisty.yaxis.set_major_formatter(nullfmt)
-
-    # the scatter plot:
-    print(columns)
-    x_lim = (X[:, columns].min(axis=0), X[:, columns].max(axis=0))
-    print(x_lim)
-    pltAle = axAle.plot(np.linspace(x_lim[0],
-                                  x_lim[1],
-                                  num_buckets + 1), 
-                      ale_score)
-
-    # now determine nice limits by hand:
-    binwidth = 0.25
-    xymax = np.max([np.max(np.fabs(x)), np.max(np.fabs(y))])
-    lim = (int(xymax/binwidth) + 1) * binwidth
-
-    axAle.set_xlim(x_lim)
-    axAle.set_ylim((ale_score.min(), ale_score.max()))
-
-    bins = np.arange(-lim, lim + binwidth, binwidth)
-    axHistx.hist(X[:, column], bins=num_buckets)  # horizontal histogram 
-    # axHisty.hist(y, bins=bins, orientation='horizontal')  # vertical histogram
-
-    axHistx.set_xlim(axAle.get_xlim())
-    # axHisty.set_ylim(axScatter.get_ylim())
-
-    plt.show()
-    
-    # plt.plot(np.linspace(X[:, columns].min(axis=0), 
-    #                      X[:, columns].max(axis=0),
-    #                      num_buckets + 1), ale_score)
-    # # plt.axis("scaled")
-    # plt.scatter(X.T[0], X.T[1])
-    # plt.show()
-    
-    return ale_score
+    return scores.reshape(num_samples, len(scores)//num_samples), accuracies , quantiles
 
 class Model:
     def __init__(self) -> None:
@@ -176,17 +231,22 @@ if __name__ == "__main__":
     # gen_data(plot=True)
     model = Model()
     np.random.seed(123456789)
-    data = np.random.random((10, 2))
-    num_buckets = 3
-    ale_score = ale(
-        model,
-        data,
-        num_buckets=num_buckets,
-        columns=(0,)
-        )
+    data = np.random.normal(size=(100, 2))
     
-    plt.plot(np.linspace(0,1, num_buckets + 1), ale_score)
-    plt.axis("scaled")
-    plt.scatter(data.T[0], data.T[1])
-    plt.show()
-    
+    dim = 1
+    if dim == 1:
+        num_buckets = 100
+        ale_score = ale(
+            model,
+            data,
+            grid_shape=(num_buckets, ),
+            columns=(0,), show=False
+            )
+    if dim == 2:
+        grid_shape = (3,3)
+        ale_score = ale(
+            model,
+            data,
+            grid_shape=grid_shape,
+            columns=(0,1)
+            )

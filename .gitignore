@@ -131,9 +131,11 @@ dmypy.json
 # dataset directoriy
 /datasets/*
 /MNIST/*
+/mnist_data/*
 
 # logging directiory 
 /logs/*
+/lightning_logs/*
 
 # keep every path that contains this file
 !*.keep

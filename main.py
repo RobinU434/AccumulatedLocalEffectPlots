@@ -1,13 +1,17 @@
 from typing import Tuple
 from pytorch_lightning import Trainer
+from sklearn.neural_network import MLPClassifier, MLPRegressor
 import torch
 from pytorch_lightning.callbacks.progress import TQDMProgressBar
 from pytorch_lightning.loggers import CSVLogger 
+
+import pandas as pd
 
 from models.mnist_network import LitMNIST
 from models.pre_processing import prepare_data
 from models.training import train
 from src.ALE import ale
+from foreign_ale import ale_plot
 
 #Importing Models
 from sklearn.neighbors import KNeighborsClassifier
@@ -33,18 +37,45 @@ def mnist():
     trainer.fit(model)
   
   
-def tabular_data(model, path, label_column, ale_columns: Tuple):
-    X_train, y_train, X_test, y_test = prepare_data(path, label_column)
+def tabular_data(model,
+                 path,
+                 label_column,
+                 ale_columns: Tuple, 
+                 normalize_data: bool = True,
+                 exclude: list = []):
+    
+    X_train, y_train, X_test, y_test, columns = prepare_data(path,
+                                                             label_column,
+                                                             normalize_data,
+                                                             exclude)
     
     model = train(model, X_train, y_train, X_test, y_test)
 
-    ale(model,
-        X_train,
-        num_buckets=22,
-        columns=ale_columns)
+    # ale(model,
+    #     X_train,
+    #     grid_shape=(50,),
+    #     columns=(3,))
+    features = columns[:-1]
+    print(features)
+    ale_plot(model,
+            pd.DataFrame(X_test, columns=features),
+            ["temperature", "humidity"],
+            bins=20,
+            # monte_carlo=True,
+            # monte_carlo_rep=100,
+            # monte_carlo_ratio=0.6,
+            )    
     
     
-
+    # for i in range(12):
+    #     ale_plot(model,
+    #             pd.DataFrame(X_test, columns=features),
+    #             pd.DataFrame(X_train, columns=features).columns[i],
+    #             bins=20,
+    #             monte_carlo=True,
+    #             monte_carlo_rep=100,
+    #             monte_carlo_ratio=0.6,
+    #             )    
 
 if __name__ == "__main__":
     # available models are:
@@ -60,13 +91,20 @@ if __name__ == "__main__":
     #     SVC(),
     #     GaussianNB(),
     #     DummyClassifier(),
-    #     ExtraTreeClassifier()
+    #     ExtraTreeClassifier(),
+    #     MLPClassifier(),
+    #     MLPRegressor(),
     #     ]
     model = AdaBoostClassifier()
+    model = RandomForestClassifier()
+    model = MLPClassifier()
+    model = MLPRegressor()
     path = "datasets/heart_failure/heart_failure_clinical_records_dataset.csv"
-    label_column = 12
+    path = "datasets/bike_rental/london_merged.csv"
+    label_column = 1
     tabular_data(model,
                  path,
                  label_column,
-                 (0, )
+                 ale_columns=(1, ),
+                 exclude = [0]
                  )
