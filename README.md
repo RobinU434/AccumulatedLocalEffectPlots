@@ -47,7 +47,7 @@ Adjust these parameters according to your specific dataset and requirements.
 - [ ] Implement ALE plot generation for multiple features.
 - [ ] Optimize ALE plot rendering for large datasets.
 - [ ] Implement unit tests for ALE class.
-- [ ] ALE plots for categorical features.
+- [x] ALE plots for categorical features.
 
 Feel free to contribute by picking up any open task or suggesting new ones. Contributions are highly appreciated!
 
