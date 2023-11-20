@@ -1,13 +1,21 @@
 from typing import List, Tuple
 import numpy as np
 from numpy import ndarray
+from enum import Enum
+
+from traitlets import Callable
+
+
+class BinMode(Enum):
+    percentiles = 0
+    linear = 1
 
 
 def get_percentiles(array: ndarray, num_percentiles: int = 10) -> ndarray:
     """get percentiles with evenly such that the data fits in evenly distributed buckets
 
     Args:
-        array (ndarray): data with shape [num_samples]. All samples with the same features you want to have the percentiles of   
+        array (ndarray): data with shape [num_samples]. All samples with the same features you want to have the percentiles of
         num_percentiles (int, optional): How many percentiles you want to have. Defaults to 10.
 
     Returns:
@@ -18,24 +26,31 @@ def get_percentiles(array: ndarray, num_percentiles: int = 10) -> ndarray:
     return packed_array
 
 
-def get_1d_bucket_index(data: ndarray, num_percentiles: int = 10) -> Tuple[ndarray, ndarray]:
-    """return for each sample in which percentile it belongs
+def get_linear_buckets(array: ndarray, num_buckets: int = 10) -> ndarray:
+    _, buckets = np.histogram(array, bins=num_buckets)
+    return buckets
+
+
+def get_1d_bucket_index(
+    data: ndarray, bucket_func: Callable, num_buckets: int = 10 
+) -> Tuple[ndarray, ndarray]:
+    """return for each sample in which bucket it belongs
 
     Args:
         data (ndarray): data column you want to operate on
-        num_percentiles (int, optional): How many percentiles you want to look at. Defaults to 10.
+        num_buckets (int, optional): How many buckets you want to look at. Defaults to 10.
 
     Returns:
-        Tuple[ndarray, ndarray]: indices for each samples in which percentile it belongs [num_samples], Percentile boundaries [num_percentiles + 1]
+        Tuple[ndarray, ndarray]: indices for each samples in which bucket it belongs [num_samples], bucket boundaries [num_buckets + 1]
     """
-    bins = get_percentiles(data, num_percentiles)
+    bins = bucket_func(data, num_buckets)
 
     # substract -1 because the bins begin at 1
     indices = np.digitize(data, bins) - 1
 
     # pack maximum element(s) into the last bin
-    max_index = np.argwhere(indices == num_percentiles)
-    indices[max_index] = num_percentiles - 1 
+    max_index = np.argwhere(indices == num_buckets)
+    indices[max_index] = num_buckets - 1
     return indices, bins
 
 
@@ -47,7 +62,7 @@ def sort_into_1d_buckets(data: ndarray, indices: ndarray) -> List[ndarray]:
         indices (ndarray): for each sample the index [num_samples]
 
     Returns:
-        List[ndarray]: List of len(unique(indices)) many ndarrays. In each ndarray are the sorted samples. 
+        List[ndarray]: List of len(unique(indices)) many ndarrays. In each ndarray are the sorted samples.
     """
     num_indices = np.max(indices) + 1
     result = [[]] * num_indices
@@ -56,11 +71,13 @@ def sort_into_1d_buckets(data: ndarray, indices: ndarray) -> List[ndarray]:
     return result
 
 
-def sort_into_2d_buckets(X: ndarray, columns: Tuple[int], num_percentiles: int) -> Tuple[List[List[ndarray]], ndarray]:
+def sort_into_2d_buckets(
+    X: ndarray, columns: Tuple[int], num_percentiles: int
+) -> Tuple[List[List[ndarray]], ndarray]:
     """pack data into 2d buckets
 
     Args:
-        X (ndarray): X 
+        X (ndarray): X
         columns (Tuple[int]): _description_
         num_percentiles (int): _description_
 
@@ -70,20 +87,24 @@ def sort_into_2d_buckets(X: ndarray, columns: Tuple[int], num_percentiles: int) 
     first_column, second_column = columns
 
     # sort into first bucket
-    first_bucket_index, first_order_percentiles = get_1d_bucket_index(X[:, first_column], num_percentiles)
+    first_bucket_index, first_order_percentiles = get_1d_bucket_index(
+        X[:, first_column], num_percentiles
+    )
     packed_data = sort_into_1d_buckets(X, first_bucket_index)
 
     second_order_percentiles = get_percentiles(X[:, second_column], num_percentiles)
 
     bins = np.stack([first_order_percentiles, second_order_percentiles])
-    
+
     # widen second_order bins to such that max(data) fits into the last bucket
     widen_second_order_percentiles = second_order_percentiles.copy()
     widen_second_order_percentiles[-1] += 1e-8
 
     bucket_2d = []
     for bucket_content in packed_data:
-        second_order_bucket_index = np.digitize(bucket_content, widen_second_order_percentiles)
+        second_order_bucket_index = np.digitize(
+            bucket_content, widen_second_order_percentiles
+        )
         bucket_2d.append(sort_into_1d_buckets(X, second_order_bucket_index))
-    
+
     return bucket_2d, bins
