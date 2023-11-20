@@ -65,13 +65,13 @@ Please review our [Code of Conduct](CODE_OF_CONDUCT.md) to understand the expect
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE). Feel free to use, modify, and distribute the code in accordance with the terms of the license.
+This project is licensed under the [Apache 2.0 License](LICENSE). Feel free to use, modify, and distribute the code in accordance with the terms of the license.
 
 ## Acknowledgments
 
 Special thanks to Janek Thomas for hosting the "Fair and Interpretable Machine Learning" seminar, which inspired and guided the development of this repository.
 
-If you have any questions or issues, please feel free to open an [issue](https://github.com/yourusername/your-repository/issues). Contributions are welcome!
+If you have any questions or issues, please feel free to open an [issue](https://github.com/RobinU434/AccumulatedLocalEffectPlots/issues). Contributions are welcome!
 
 Happy coding! 🚀
 
