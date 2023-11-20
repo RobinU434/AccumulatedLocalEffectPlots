@@ -43,14 +43,18 @@ def get_1d_bucket_index(
     Returns:
         Tuple[ndarray, ndarray]: indices for each samples in which bucket it belongs [num_samples], bucket boundaries [num_buckets + 1]
     """
+    # force data into a float64 format
+    data = np.array(data,dtype='float64')
+    
     bins = bucket_func(data, num_buckets)
 
-    # substract -1 because the bins begin at 1
+    # subtract -1 because the bins begin at 1
     indices = np.digitize(data, bins) - 1
 
     # pack maximum element(s) into the last bin
     max_index = np.argwhere(indices == num_buckets)
     indices[max_index] = num_buckets - 1
+
     return indices, bins
 
 
