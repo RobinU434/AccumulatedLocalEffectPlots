@@ -139,3 +139,5 @@ dmypy.json
 
 # keep every path that contains this file
 !*.keep
+
+data
