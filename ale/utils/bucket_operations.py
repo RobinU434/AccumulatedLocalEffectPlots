@@ -76,7 +76,7 @@ def sort_into_1d_buckets(data: ndarray, indices: ndarray) -> List[ndarray]:
 
 
 def sort_into_2d_buckets(
-    X: ndarray, columns: Tuple[int], num_percentiles: int
+    X: ndarray, columns: Tuple[int], bucket_func: Callable, num_percentiles: int = 10
 ) -> Tuple[List[List[ndarray]], ndarray]:
     """pack data into 2d buckets
 
@@ -88,27 +88,29 @@ def sort_into_2d_buckets(
     Returns:
         Tuple[List[List[ndarray]], ndarray]: data put into the 2d buckets
     """
+    # TODO: do this recursively
     first_column, second_column = columns
 
     # sort into first bucket
     first_bucket_index, first_order_percentiles = get_1d_bucket_index(
-        X[:, first_column], num_percentiles
+        X[:, first_column], bucket_func, num_percentiles
     )
     packed_data = sort_into_1d_buckets(X, first_bucket_index)
+    [print(column.shape) for column in packed_data]
 
-    second_order_percentiles = get_percentiles(X[:, second_column], num_percentiles)
-
-    bins = np.stack([first_order_percentiles, second_order_percentiles])
-
-    # widen second_order bins to such that max(data) fits into the last bucket
-    widen_second_order_percentiles = second_order_percentiles.copy()
-    widen_second_order_percentiles[-1] += 1e-8
+    second_order_bins = bucket_func(X[:, second_column], num_percentiles)
+    
+    bins = np.stack([first_order_percentiles, second_order_bins])
 
     bucket_2d = []
     for bucket_content in packed_data:
         second_order_bucket_index = np.digitize(
-            bucket_content, widen_second_order_percentiles
-        )
-        bucket_2d.append(sort_into_1d_buckets(X, second_order_bucket_index))
+            bucket_content[:, 1], second_order_bins
+        ) - 1
+        
+        max_max_idx = np.argwhere(second_order_bucket_index == num_percentiles)
+        second_order_bucket_index[max_max_idx] = num_percentiles - 1
+        
+        bucket_2d.append(sort_into_1d_buckets(bucket_content, second_order_bucket_index))
 
     return bucket_2d, bins
