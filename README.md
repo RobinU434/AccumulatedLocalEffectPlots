@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository is part of the "Fair and Interpretable Machine Learning" seminar hosted by [Janek Thomas](https://www.linkedin.com/in/thomasjanek/?originalSubdomain=de) in the summer semester 2022. The primary focus of this codebase is to provide a custom implementation of Accumulated Local Effect (ALE) plots as proposed from Apley, Daniel W. et al. in 2016. [Visualizing the Effects of Predictor Variables in Black Box Supervised Learning Models](https://arxiv.org/abs/1612.08468), a popular interpretability technique in machine learning.
+This repository is part of the "Fair and Interpretable Machine Learning" seminar hosted by [Janek Thomas](https://www.linkedin.com/in/thomasjanek/?originalSubdomain=de) in the summer semester 2022. The primary focus of this codebase is to provide a custom implementation of Accumulated Local Effect (ALE) plots as proposed from Apley, Daniel W. et al. in 2016. [Visualizing the Effects of Predictor Variables in Black Box Supervised Learning Models](https://arxiv.org/pdf/1612.08468.pdf), a popular interpretability technique in machine learning.
 
 ## About Accumulated Local Effect (ALE) Plots
 
