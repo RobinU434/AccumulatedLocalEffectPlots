@@ -62,7 +62,7 @@ ALE on 50 Random-Forest-Regressor on categorical and continuous features. Indivi
 ![Bike rental depending on weather](figures/bike_rental_weather.png)
 ![Bike rental depending on continuous](figures/bike_rental_continuous.png)
 
-2D mean ALE depending on temperature and humidity over 20 Random-Forest-Regressor. The heatmap was calculated using a linear interpolation method between the bins. The x and y ticks are the bucket mids. For more information about 2D ALE please refer to original paper.
+2D mean ALE depending on temperature and humidity over 20 Random-Forest-Regressor. The heatmap was calculated using a linear interpolation method between the bins. The x and y ticks are the bucket mids. For more information about 2D ALE please refer to original paper. The black dots are samples from the dataset given to the ALE module.
 ![Bike rental depending on temperature and humidity](figures/bike_rental_2d.png)
 
 ## Checklist of Open Tasks
