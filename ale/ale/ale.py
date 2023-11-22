@@ -33,7 +33,7 @@ class ALE:
         self._num_buckets = num_buckets
         self._centered = centered
 
-        self._bin_mode: str
+        self._bin_mode: str = bin_mode
         self._set_bin_mode(bin_mode)
 
     def __call__(
@@ -63,8 +63,8 @@ class ALE:
         fig, ax = plt.subplots()
         extent = [mids[0, 0], mids[0, -1], mids[1, -1], mids[1, 0]]
         img = ax.imshow(inter, extent=extent, cmap=mpl.colormaps[cmap], aspect=aspect)
-        ax.set_xticks(bins[0])
-        ax.set_yticks(bins[1])
+        ax.set_xticks(mids[0])
+        ax.set_yticks(mids[1])
         ax.set_xlim([mids[0, 0], mids[0, -1]])
         ax.set_ylim([mids[1, 0], mids[1, -1]])
 
