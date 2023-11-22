@@ -22,8 +22,8 @@ def get_percentiles(array: ndarray, num_percentiles: int = 10) -> ndarray:
         ndarray: percentiles [num_percentiles + 1]
     """
     percentiles = np.linspace(0, 100, num=num_percentiles + 1)
-    packed_array = np.percentile(array, percentiles).astype(int)
-    return packed_array
+    bins = np.percentile(array, percentiles).astype(float)
+    return bins
 
 
 def get_linear_buckets(array: ndarray, num_buckets: int = 10) -> ndarray:
