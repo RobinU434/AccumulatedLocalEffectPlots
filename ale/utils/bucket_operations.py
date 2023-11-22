@@ -3,7 +3,7 @@ import numpy as np
 from numpy import ndarray
 from enum import Enum
 
-from traitlets import Callable
+from typing import Callable
 
 
 class BinMode(Enum):
@@ -22,12 +22,13 @@ def get_percentiles(array: ndarray, num_percentiles: int = 10) -> ndarray:
         ndarray: percentiles [num_percentiles + 1]
     """
     percentiles = np.linspace(0, 100, num=num_percentiles + 1)
-    packed_array = np.percentile(array, percentiles)
+    packed_array = np.percentile(array, percentiles).astype(int)
     return packed_array
 
 
 def get_linear_buckets(array: ndarray, num_buckets: int = 10) -> ndarray:
     _, buckets = np.histogram(array, bins=num_buckets)
+    buckets = buckets.astype(int)
     return buckets
 
 
@@ -71,7 +72,8 @@ def sort_into_1d_buckets(data: ndarray, indices: ndarray) -> List[ndarray]:
     num_indices = np.max(indices) + 1
     result = [[]] * num_indices
     for idx in range(num_indices):
-        result[idx] = data[np.where(indices == idx)]
+        content = data[np.where(indices == idx)]
+        result[idx] = content
     return result
 
 
@@ -96,21 +98,24 @@ def sort_into_2d_buckets(
         X[:, first_column], bucket_func, num_percentiles
     )
     packed_data = sort_into_1d_buckets(X, first_bucket_index)
-    [print(column.shape) for column in packed_data]
-
+    
     second_order_bins = bucket_func(X[:, second_column], num_percentiles)
     
     bins = np.stack([first_order_percentiles, second_order_bins])
 
     bucket_2d = []
     for bucket_content in packed_data:
+        second_feature_colum = np.array(bucket_content[:, second_column], dtype=np.float64)
         second_order_bucket_index = np.digitize(
-            bucket_content[:, 1], second_order_bins
+            second_feature_colum, second_order_bins
         ) - 1
         
         max_max_idx = np.argwhere(second_order_bucket_index == num_percentiles)
         second_order_bucket_index[max_max_idx] = num_percentiles - 1
         
-        bucket_2d.append(sort_into_1d_buckets(bucket_content, second_order_bucket_index))
+        if len(second_order_bucket_index):
+            bucket_2d.append(sort_into_1d_buckets(bucket_content, second_order_bucket_index))
+        else:
+            bucket_2d.append([]) 
 
     return bucket_2d, bins
