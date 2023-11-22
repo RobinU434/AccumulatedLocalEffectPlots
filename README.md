@@ -42,6 +42,29 @@ In this code snippet:
 
 Adjust these parameters according to your specific dataset and requirements.
 
+## Examples
+
+You will find a brief summary of existing examples. For more details please refer to the example [notebooks](examples/)
+
+### Boston Housing Dataset
+
+ALE on 20 Random-Forest-Regressor. Individual results in grey. Mean ALE in blue with standard deviation in fading blue.
+
+![ALE on Boston Housing dataset](figures/boston_housing.png)
+
+### Bike Rental Dataset
+
+ALE on 50 Random-Forest-Regressor on categorical and continuous features. Individual results in grey. Mean ALE in blue with standard deviation in fading blue.
+
+![Bike rental depending on season](figures/bike_rental_season.png)
+![Bike rental depending on month](figures/bike_rental_month.png)
+![Bike rental depending on day](figures/bike_rental_day.png)
+![Bike rental depending on weather](figures/bike_rental_weather.png)
+![Bike rental depending on continuous](figures/bike_rental_continuous.png)
+
+2D mean ALE depending on temperature and humidity over 20 Random-Forest-Regressor. The heatmap was calculated using a linear interpolation method between the bins. The x and y ticks are the bucket mids. For more information about 2D ALE please refer to original paper.
+![Bike rental depending on temperature and humidity](figures/bike_rental_2d.png)
+
 ## Checklist of Open Tasks
 
 - [ ] Implement ALE plot generation for multiple features.
